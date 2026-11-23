@@ -1,10 +1,12 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'core/locale/app_translations.dart';
+import 'core/services/data_bus.dart';
 import 'core/services/database_service.dart';
+import 'core/services/file_service.dart';
 import 'core/services/obligation_service.dart';
 import 'core/services/session_service.dart';
 import 'core/services/storage_service.dart';
@@ -18,6 +20,8 @@ Future<void> main() async {
   await GetStorage.init();
   await Get.putAsync(() => StorageService().init(), permanent: true);
   await Get.putAsync(() => DatabaseService().init(), permanent: true);
+  Get.put(DataBus(), permanent: true);
+  Get.put(FileService(), permanent: true);
   Get.put(SessionService(), permanent: true);
   Get.put(ObligationService(), permanent: true);
   runApp(const PtmsApp());
@@ -33,8 +37,9 @@ class PtmsApp extends StatelessWidget {
       title: 'PTMS',
       debugShowCheckedModeBanner: false,
       translations: AppTranslations(),
+      // Arabic is the primary language; the saved choice persists in GetStorage.
       locale: storage.locale,
-      fallbackLocale: const Locale('en', 'US'),
+      fallbackLocale: const Locale('ar', 'SA'),
       supportedLocales: const [Locale('ar', 'SA'), Locale('en', 'US')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

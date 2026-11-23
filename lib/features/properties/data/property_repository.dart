@@ -1,27 +1,30 @@
-import 'package:get/get.dart';
+﻿import '../../../core/crud/generic_repository.dart';
 
-import '../../../core/services/database_service.dart';
-import 'property_model.dart';
+class PropertyRepository extends GenericRepository {
+  PropertyRepository() : super('properties');
 
-class PropertyRepository {
-  DatabaseService get _db => Get.find<DatabaseService>();
-
-  Future<List<PropertyModel>> getAll() async {
-    final rows = await _db.db.query('properties', orderBy: 'name COLLATE NOCASE');
-    return rows.map(PropertyModel.fromMap).toList();
-  }
-
-  Future<int> insert(PropertyModel p) => _db.db.insert('properties', p.toMap());
-
-  Future<int> update(PropertyModel p) =>
-      _db.db.update('properties', p.toMap(), where: 'id = ?', whereArgs: [p.id]);
+  /// Properties with unit / occupancy counters for list cards.
+  Future<List<DbRow>> listWithStats() => raw('''
+    SELECT p.*,
+      (SELECT COUNT(*) FROM units u WHERE u.property_id = p.id) AS units_total,
+      (SELECT COUNT(*) FROM units u WHERE u.property_id = p.id
+         AND u.status = 'rented') AS units_rented
+    FROM properties p
+    ORDER BY p.name COLLATE NOCASE''');
 
   Future<int> unitCount(int propertyId) async {
-    final r = await _db.db.rawQuery(
+    final r = await raw(
         'SELECT COUNT(*) AS c FROM units WHERE property_id = ?', [propertyId]);
     return (r.first['c'] as int?) ?? 0;
   }
 
-  Future<int> delete(int id) =>
-      _db.db.delete('properties', where: 'id = ?', whereArgs: [id]);
+  Future<int> serviceCount(int propertyId) async {
+    final r = await raw(
+        'SELECT COUNT(*) AS c FROM services WHERE property_id = ?',
+        [propertyId]);
+    return (r.first['c'] as int?) ?? 0;
+  }
+
+  Future<int> setImage(int id, String? path) =>
+      update(id, {'image_path': path});
 }

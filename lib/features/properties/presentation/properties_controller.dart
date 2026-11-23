@@ -1,45 +1,43 @@
-import 'package:get/get.dart';
+﻿import 'package:get/get.dart';
 
-import '../data/property_model.dart';
+import '../../../core/crud/crud_controller.dart';
+import '../../../core/crud/generic_repository.dart';
 import '../data/property_repository.dart';
+import 'property_form.dart';
 
-class PropertiesController extends GetxController
-    with StateMixin<List<PropertyModel>> {
-  final PropertyRepository _repo = Get.find<PropertyRepository>();
+class PropertiesController extends CrudController {
+  final PropertyRepository repo = PropertyRepository();
+  final statusFilter = 'all'.obs;
 
   @override
-  void onInit() {
-    super.onInit();
-    load();
-  }
+  List<String> get searchColumns =>
+      const ['name', 'city', 'address', 'owner_name', 'property_type'];
 
-  Future<void> load() async {
-    change(null, status: RxStatus.loading());
-    try {
-      final list = await _repo.getAll();
-      change(list,
-          status: list.isEmpty ? RxStatus.empty() : RxStatus.success());
-    } catch (e) {
-      change(null, status: RxStatus.error(e.toString()));
+  @override
+  Future<List<DbRow>> fetch() => repo.listWithStats();
+
+  @override
+  bool accept(DbRow row) {
+    switch (statusFilter.value) {
+      case 'active':
+        return row['is_active'] == 1;
+      case 'inactive':
+        return row['is_active'] != 1;
+      default:
+        return true;
     }
   }
 
-  Future<void> save(PropertyModel p) async {
-    if (p.id == null) {
-      await _repo.insert(p);
-    } else {
-      await _repo.update(p);
-    }
-    await load();
+  void setFilter(String v) {
+    statusFilter.value = v;
+    refilter();
   }
 
-  Future<void> remove(PropertyModel p) async {
-    // Business rule: never orphan units / contracts / financial history.
-    if (await _repo.unitCount(p.id!) > 0) {
-      Get.snackbar('delete'.tr, 'cannot_delete_has_units'.tr);
-      return;
-    }
-    await _repo.delete(p.id!);
-    await load();
+  Future<void> openForm({DbRow? existing}) async {
+    if (await openPropertyForm(existing: existing)) await load(silent: true);
+  }
+
+  Future<void> remove(DbRow row) async {
+    if (await deleteProperty(row)) await load(silent: true);
   }
 }

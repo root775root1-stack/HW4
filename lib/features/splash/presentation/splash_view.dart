@@ -19,34 +19,52 @@ class _SplashViewState extends State<SplashView> {
   }
 
   Future<void> _boot() async {
-    // Catch up on any monthly obligations missed while the app was closed.
+    // Catch up on monthly obligations missed while the app was closed.
     try {
       await Get.find<ObligationService>().runCatchUp();
     } catch (e) {
       debugPrint('Obligation catch-up failed: $e');
     }
-    await Future.delayed(const Duration(milliseconds: 600));
-    // PinMiddleware redirects to the PIN screen when needed.
+    await Future.delayed(const Duration(milliseconds: 700));
+    // PinMiddleware redirects to the PIN screen when a PIN is set.
     Get.offAllNamed(Routes.home);
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: s.primary,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.apartment,
-                size: 88, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                  color: s.onPrimary.withValues(alpha: 0.15),
+                  shape: BoxShape.circle),
+              child:
+                  Icon(Icons.apartment_rounded, size: 72, color: s.onPrimary),
+            ),
+            const SizedBox(height: 20),
             Text('app_name'.tr,
-                style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 24),
-            const CircularProgressIndicator(),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: s.onPrimary, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: 26,
+              height: 26,
+              child:
+                  CircularProgressIndicator(strokeWidth: 3, color: s.onPrimary),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+extension on Color {
+  withValues({required double alpha}) {}
 }

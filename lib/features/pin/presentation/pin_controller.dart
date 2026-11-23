@@ -1,28 +1,40 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+﻿import 'package:get/get.dart';
 
 import '../../../core/services/session_service.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../routes/app_routes.dart';
 
 class PinController extends GetxController {
-  final input = TextEditingController();
-  final error = ''.obs;
+  static const maxLen = 6;
+  final digits = ''.obs;
+  final error = false.obs;
 
-  void submit() {
+  void press(String d) {
+    if (digits.value.length >= maxLen) return;
+    error.value = false;
+    digits.value += d;
     final storage = Get.find<StorageService>();
-    if (storage.verifyPin(input.text)) {
+    // Unlock as soon as the typed digits match (PIN length is 4-6).
+    if (digits.value.length >= 4 && storage.verifyPin(digits.value)) {
       Get.find<SessionService>().unlocked = true;
       Get.offAllNamed(Routes.home);
-    } else {
-      error.value = 'wrong_pin'.tr;
-      input.clear();
+    } else if (digits.value.length == maxLen) {
+      _fail();
     }
   }
 
-  @override
-  void onClose() {
-    input.dispose();
-    super.onClose();
+  void backspace() {
+    if (digits.value.isEmpty) return;
+    error.value = false;
+    digits.value = digits.value.substring(0, digits.value.length - 1);
+  }
+
+  void submit() {
+    if (digits.value.length >= 4) _fail();
+  }
+
+  void _fail() {
+    error.value = true;
+    digits.value = '';
   }
 }

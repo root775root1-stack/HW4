@@ -1,144 +1,112 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../data/property_model.dart';
+import '../../../core/crud/generic_repository.dart';
+import '../../../core/crud/module_list_view.dart';
+import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/common_widgets.dart';
+import '../../../routes/app_routes.dart';
 import 'properties_controller.dart';
+
+/// Leading thumbnail: the property photo when available, else an icon.
+Widget propertyThumb(BuildContext context, DbRow r, {double size = 56}) {
+  final path = txt(r['image_path']);
+  final s = Theme.of(context).colorScheme;
+  Widget fallback() => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+            color: s.primaryContainer, borderRadius: BorderRadius.circular(14)),
+        child: Icon(Icons.apartment, color: s.onPrimaryContainer),
+      );
+  if (path.isEmpty) return fallback();
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(14),
+    child: Image.file(File(path),
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback()),
+  );
+}
 
 class PropertiesView extends GetView<PropertiesController> {
   const PropertiesView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('properties'.tr)),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openForm(),
-        child: const Icon(Icons.add),
+    return ModuleListView(
+      controller: controller,
+      titleKey: 'properties',
+      addKey: 'add_property',
+      emptyIcon: Icons.apartment_outlined,
+      emptyTitleKey: 'no_properties',
+      onAdd: () => controller.openForm(),
+      filters: FilterChips(
+        values: const ['active', 'inactive'],
+        selected: controller.statusFilter,
+        onSelected: controller.setFilter,
       ),
-      body: controller.obx(
-        (list) => ListView.separated(
-          padding: const EdgeInsets.all(12),
-          itemCount: list!.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
-          itemBuilder: (_, i) {
-            final p = list[i];
-            return Card(
-              child: ListTile(
-                leading: const Icon(Icons.apartment),
-                title: Text(p.name),
-                subtitle: Text(p.address ?? ''),
-                onTap: () => _openForm(existing: p),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _confirmDelete(p),
-                ),
-              ),
-            );
-          },
-        ),
-        onEmpty: Center(child: Text('no_data'.tr)),
-        onLoading: const Center(child: CircularProgressIndicator()),
-        onError: (e) => Center(child: Text(e ?? '')),
-      ),
-    );
-  }
-
-  void _confirmDelete(PropertyModel p) {
-    Get.defaultDialog(
-      title: 'confirm'.tr,
-      middleText: 'delete_confirm'.tr,
-      textConfirm: 'delete'.tr,
-      textCancel: 'cancel'.tr,
-      onConfirm: () {
-        Get.back();
-        controller.remove(p);
-      },
-    );
-  }
-
-  void _openForm({PropertyModel? existing}) {
-    final formKey = GlobalKey<FormState>();
-    final name = TextEditingController(text: existing?.name);
-    final address = TextEditingController(text: existing?.address);
-    final desc = TextEditingController(text: existing?.description);
-    final floors =
-        TextEditingController(text: (existing?.floors ?? 1).toString());
-    final notes = TextEditingController(text: existing?.notes);
-
-    Get.bottomSheet(
-      Container(
-        color: Get.theme.colorScheme.surface,
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: MediaQuery.of(Get.context!).viewInsets.bottom + 16,
-        ),
-        child: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: name,
-                  decoration: InputDecoration(labelText: 'name'.tr),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'required'.tr : null,
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
-                    controller: address,
-                    decoration: InputDecoration(labelText: 'address'.tr)),
-                const SizedBox(height: 10),
-                TextFormField(
-                    controller: desc,
-                    decoration: InputDecoration(labelText: 'description'.tr)),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: floors,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'floors'.tr),
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
-                    controller: notes,
-                    maxLines: 2,
-                    decoration: InputDecoration(labelText: 'notes'.tr)),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                          onPressed: Get.back, child: Text('cancel'.tr)),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: () async {
-                          if (!formKey.currentState!.validate()) return;
-                          await controller.save(PropertyModel(
-                            id: existing?.id,
-                            name: name.text.trim(),
-                            address: address.text.trim(),
-                            description: desc.text.trim(),
-                            floors: int.tryParse(floors.text) ?? 1,
-                            notes: notes.text.trim(),
-                            isActive: existing?.isActive ?? true,
-                          ));
-                          Get.back();
-                        },
-                        child: Text('save'.tr),
+      itemBuilder: (context, r) {
+        final total = (r['units_total'] as int?) ?? 0;
+        final rented = (r['units_rented'] as int?) ?? 0;
+        return Card(
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () =>
+                Get.toNamed(Routes.propertyDetails, arguments: {'id': r['id']}),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(children: [
+                propertyThumb(context, r),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(txt(r['name']),
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      Text(
+                        [
+                          if (txt(r['property_type']).isNotEmpty)
+                            'o_${txt(r['property_type'])}'.tr,
+                          txt(r['city']),
+                        ].where((e) => e.isNotEmpty).join(' • '),
+                        style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
-                    ),
+                      const SizedBox(height: 6),
+                      Wrap(spacing: 8, children: [
+                        Chip(
+                          visualDensity: VisualDensity.compact,
+                          avatar: const Icon(Icons.meeting_room, size: 16),
+                          label: Text('$rented / $total ${'rented_short'.tr}'),
+                        ),
+                        if (r['is_active'] != 1) const StatusChip('inactive'),
+                      ]),
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (v) {
+                    if (v == 'edit') controller.openForm(existing: r);
+                    if (v == 'delete') controller.remove(r);
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(value: 'edit', child: Text('edit'.tr)),
+                    PopupMenuItem(value: 'delete', child: Text('delete'.tr)),
                   ],
                 ),
-              ],
+              ]),
             ),
           ),
-        ),
-      ),
-      isScrollControlled: true,
+        );
+      },
     );
   }
 }

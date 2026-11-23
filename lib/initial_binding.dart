@@ -1,10 +1,11 @@
-import 'package:get/get.dart';
+﻿import 'package:get/get.dart';
 
-import 'features/properties/data/property_repository.dart';
+import 'core/services/api_client.dart';
 
+/// App-wide lazy dependencies. Core services are registered in main().
 class InitialBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<PropertyRepository>(() => PropertyRepository(), fenix: true);
+    Get.lazyPut<ApiClient>(() => ApiClient(), fenix: true);
   }
 }
