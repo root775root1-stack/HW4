@@ -10,6 +10,8 @@ import '../../../core/services/storage_service.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/common_widgets.dart';
 import '../../../routes/app_routes.dart';
+import '../../properties/presentation/property_form.dart';
+import '../../units/presentation/unit_form.dart';
 import '../data/contract_repository.dart';
 import '../data/contract_specs.dart';
 
@@ -236,6 +238,41 @@ class ContractFormController extends GetxController {
       'emergency_phone': t['emergency_phone'],
       'notes': t['notes'],
     });
+  }
+
+  /// Adds a new property without leaving the contract form, then selects it.
+  Future<void> addProperty() async {
+    final ok = await openPropertyForm();
+    if (!ok) return;
+    final props = await repo
+        .raw('SELECT id, name FROM properties ORDER BY name COLLATE NOCASE');
+    _unitModel.setOptions('property_id', [
+      for (final p in props)
+        FieldOption('${p['id']}', label: '${p['name']}', translate: false)
+    ]);
+    final newest =
+        await repo.raw('SELECT id FROM properties ORDER BY id DESC LIMIT 1');
+    if (newest.isNotEmpty) {
+      _unitModel.set('property_id', newest.first['id']);
+    }
+  }
+
+  /// Adds a new unit under the currently selected property, then selects it.
+  Future<void> addUnit() async {
+    final pid = _int(_unitModel.get('property_id'));
+    if (pid == null) {
+      showErr('add_property_first');
+      return;
+    }
+    final ok = await openUnitForm(propertyId: pid);
+    if (!ok) return;
+    await _loadUnitOptions('$pid');
+    final newest = await repo.raw(
+        'SELECT id FROM units WHERE property_id = ? ORDER BY id DESC LIMIT 1',
+        [pid]);
+    if (newest.isNotEmpty) {
+      _unitModel.set('unit_id', newest.first['id']);
+    }
   }
 
   /// "Suggest in words": converts the monthly rent into words.

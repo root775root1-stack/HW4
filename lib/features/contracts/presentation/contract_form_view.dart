@@ -72,6 +72,8 @@ class ContractFormView extends GetView<ContractFormController> {
                                       .onSurfaceVariant)),
                           const SizedBox(height: 14),
                           ..._notes(context, controller.steps[i].id),
+                          if (controller.steps[i].id == 'unit')
+                            _unitActions(context),
                           KeyedSubtree(
                             key: ValueKey('form_$i'),
                             child: DynamicForm(model: controller.models[i]),
@@ -141,6 +143,26 @@ class ContractFormView extends GetView<ContractFormController> {
         ]),
       ),
     ];
+  }
+
+  /// Lets the owner add a property/unit inline instead of getting stuck
+  /// when none exist yet.
+  Widget _unitActions(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Wrap(spacing: 8, runSpacing: 8, children: [
+        OutlinedButton.icon(
+          onPressed: controller.addProperty,
+          icon: const Icon(Icons.add_home_work_outlined, size: 18),
+          label: Text('add_property'.tr),
+        ),
+        OutlinedButton.icon(
+          onPressed: controller.addUnit,
+          icon: const Icon(Icons.add_business_outlined, size: 18),
+          label: Text('add_unit'.tr),
+        ),
+      ]),
+    );
   }
 
   List<Widget> _extras(BuildContext context, String id) {

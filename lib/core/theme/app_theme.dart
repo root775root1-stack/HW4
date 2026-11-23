@@ -1,34 +1,46 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const seed = Color(0xFF0F6E5C);
+  // A richer, more saturated emerald-teal than before, with a warm
+  // complementary accent so light and dark mode both feel designed rather
+  // than default Material.
+  static const seed = Color(0xFF0E8E73);
+  static const _accent = Color(0xFFFF8A3D);
+  static const _lightBg = Color(0xFFF4F9F7);
+  static const _darkBg = Color(0xFF0E1513);
+  static const _darkSurface = Color(0xFF162420);
 
   static ThemeData get light => _build(Brightness.light);
   static ThemeData get dark => _build(Brightness.dark);
 
   static ThemeData _build(Brightness b) {
-    final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: b);
+    var scheme = ColorScheme.fromSeed(seedColor: seed, brightness: b);
+    scheme = scheme.copyWith(
+        tertiary: _accent,
+        tertiaryContainer: b == Brightness.light
+            ? _accent.withValues(alpha: 0.18)
+            : _accent.withValues(alpha: 0.28));
     final isLight = b == Brightness.light;
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor:
-          isLight ? const Color(0xFFF4F7F6) : scheme.surface,
+      scaffoldBackgroundColor: isLight ? _lightBg : _darkBg,
       appBarTheme: AppBarTheme(
         centerTitle: false,
-        backgroundColor: isLight ? const Color(0xFFF4F7F6) : scheme.surface,
+        backgroundColor: isLight ? _lightBg : _darkBg,
         foregroundColor: scheme.onSurface,
         elevation: 0,
         scrolledUnderElevation: 1,
       ),
       cardTheme: CardThemeData(
-        elevation: 1,
+        elevation: isLight ? 1 : 0,
+        color: isLight ? Colors.white : _darkSurface,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isLight ? Colors.white : scheme.surfaceContainerHighest,
+        fillColor: isLight ? Colors.white : _darkSurface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: scheme.outlineVariant),
@@ -94,5 +106,9 @@ class AppTheme {
     }
   }
 
-  static CardThemeData({required int elevation, required EdgeInsets margin, required RoundedRectangleBorder shape}) {}
+  static CardThemeData({required int elevation, required Color color, required EdgeInsets margin, required RoundedRectangleBorder shape}) {}
+}
+
+extension on Color {
+  withValues({required double alpha}) {}
 }
